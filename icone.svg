@@ -1,0 +1,14 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" width="512" height="512">
+  <!-- Ícone do roteiro: a linha da viagem com três paradas, sobre o verde do app.
+       A arte fica dentro dos 80% centrais para sobreviver ao recorte do ícone mascarável. -->
+  <rect width="512" height="512" rx="96" fill="#0A6246"/>
+  <g fill="none" stroke="#F1F1ED" stroke-width="26" stroke-linecap="round" stroke-linejoin="round">
+    <path d="M140 392 C140 300 196 300 220 268 C250 228 206 180 236 146 C266 112 338 124 372 150"/>
+  </g>
+  <circle cx="140" cy="392" r="44" fill="#F1F1ED"/>
+  <circle cx="140" cy="392" r="20" fill="#0A6246"/>
+  <circle cx="236" cy="146" r="34" fill="#F1F1ED"/>
+  <circle cx="236" cy="146" r="15" fill="#0A6246"/>
+  <circle cx="372" cy="150" r="44" fill="#F1F1ED"/>
+  <circle cx="372" cy="150" r="20" fill="#0A6246"/>
+</svg>
