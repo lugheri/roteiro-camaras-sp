@@ -101,6 +101,18 @@ select,.btn{font:inherit;font-size:14px;background:var(--placa);color:inherit;bo
 .cab:hover .seta{transform:translateX(2px);color:var(--tinta)}
 .cidade.feita .nome{text-decoration:line-through;text-decoration-thickness:1px;color:var(--tinta-2)}
 
+/* ---- visita: agendamento e anotação ---- */
+.visita-bloco{background:var(--placa);border:1px solid var(--risco);border-radius:9px;padding:12px 13px;margin-bottom:12px}
+.visita-linha{display:flex;flex-wrap:wrap;gap:9px;align-items:center}
+.visita-bloco label{font-size:10.5px;letter-spacing:.07em;text-transform:uppercase;color:var(--tinta-2);font-weight:700;display:block;margin-bottom:4px}
+.visita-bloco input[type="datetime-local"]{font:inherit;font-size:14px;background:var(--papel);color:inherit;border:1px solid var(--risco);border-radius:7px;padding:7px 9px;min-width:210px}
+.visita-bloco textarea{width:100%;min-height:76px;margin-top:10px;font:inherit;font-size:14px;line-height:1.45;background:var(--papel);color:inherit;border:1px solid var(--risco);border-radius:7px;padding:9px 10px;resize:vertical}
+.visita-bloco textarea:focus,.visita-bloco input:focus{outline:2px solid var(--verde);outline-offset:1px}
+.visita-aviso{font-size:12px;color:var(--tinta-2);margin-top:7px}
+.agendada{font-family:var(--mono);font-size:11.5px;background:var(--verde-fraco);color:var(--verde);padding:1px 7px;border-radius:999px;white-space:nowrap}
+.tem-nota{font-size:11.5px;color:var(--tinta-2)}
+.tem-nota::before{content:"✎ ";font-size:12px}
+
 /* ---- ficha em janela ---- */
 .modal{border:0;padding:0;background:transparent;max-width:min(760px,96vw);width:100%;max-height:92dvh}
 .modal::backdrop{background:rgba(10,12,15,.62);backdrop-filter:blur(2px)}
@@ -356,6 +368,17 @@ select,.btn{font:inherit;font-size:14px;background:var(--placa);color:inherit;bo
   var estado = { q:'', rota:0, porte:0, soPauta:false, esconder:false };
   var feitas = {};
   var CHAVE = 'roteiro-camaras-sp:feitas';
+  var CHAVE_NOTA = 'roteiro-camaras-sp:notas';
+  var CHAVE_AGENDA = 'roteiro-camaras-sp:agenda';
+  var notas = {}, agenda = {};
+  try { notas = JSON.parse(localStorage.getItem(CHAVE_NOTA) || "{}") || {}; } catch (e) { notas = {}; }
+  try { agenda = JSON.parse(localStorage.getItem(CHAVE_AGENDA) || "{}") || {}; } catch (e) { agenda = {}; }
+  function salvarNotas(){
+    try {
+      localStorage.setItem(CHAVE_NOTA, JSON.stringify(notas));
+      localStorage.setItem(CHAVE_AGENDA, JSON.stringify(agenda));
+    } catch (e) {}
+  }
   try { feitas = JSON.parse(localStorage.getItem(CHAVE) || '{}') || {}; } catch (e) { feitas = {}; }
   function salvar(){ try { localStorage.setItem(CHAVE, JSON.stringify(feitas)); } catch (e) {} }
 
@@ -402,6 +425,8 @@ select,.btn{font:inherit;font-size:14px;background:var(--placa);color:inherit;bo
         .slice(0, 2).map(function(x){ return x[0]; }).join(' / ');
       resumo.push('<span class="perna">+' + p.km + ' km de ' + esc(p.de) + (vias ? ' · ' + vias : '') + '</span>');
     }
+    if (agenda[c.n]) resumo.push('<span class="agendada">' + quandoCurto(agenda[c.n]) + '</span>');
+    if (notas[c.n]) resumo.push('<span class="tem-nota">anotação</span>');
     if (c.tel) resumo.push('<span class="tel">' + esc(c.tel) + '</span>');
     resumo.push(c.ver.length ? c.ver.length + (c.ver.length === 1 ? ' gabinete na pauta' : ' gabinetes na pauta') : 'nenhum gabinete na pauta');
     if (c.pref) resumo.push('Prefeito ' + esc(c.pref) + (c.prefP ? ' (' + esc(c.prefP) + ')' : ''));
@@ -973,7 +998,8 @@ select,.btn{font:inherit;font-size:14px;background:var(--placa);color:inherit;bo
         (r.horas ? ' (' + r.horas.toFixed(0) + ' h ao volante)' : '') + '</span>' +
         '<span aria-hidden="true">·</span><span>' + nf.format(r.maisLonge) + ' km até a parada mais distante</span>' +
         '<span aria-hidden="true">·</span><span>cerca de <b>' + r.dias + (r.dias === 1 ? ' dia' : ' dias') + '</b> de visita</span>' +
-        '<button class="copiar" type="button" data-rota-copiar="' + r.id + '">copiar trajeto</button></div>' +
+        '<button class="copiar" type="button" data-rota-copiar="' + r.id + '">copiar trajeto</button>' +
+        '<button class="copiar" type="button" data-rota-agenda="' + r.id + '">agenda da rota</button></div>' +
         passos.map(function(p){ return cidadeHtml(p.c, p); }).join('') + '</section>';
     });
     lista.innerHTML = html || '<p class="vazio">Nenhuma cidade com esses filtros.' +
@@ -1034,6 +1060,21 @@ select,.btn{font:inherit;font-size:14px;background:var(--placa);color:inherit;bo
     return linhas.join(String.fromCharCode(10));
   }
   lista.addEventListener('click', function(ev){
+    var ra = ev.target.closest('[data-rota-agenda]');
+    if (ra) {
+      ev.stopPropagation();
+      var rota = rotaPorId[+ra.getAttribute('data-rota-agenda')];
+      var eventos = rota.cidades.map(eventoIcs).filter(Boolean);
+      if (!eventos.length) {
+        ra.textContent = 'nenhuma visita marcada nesta rota';
+        setTimeout(function(){ ra.textContent = 'agenda da rota'; }, 2600);
+        return;
+      }
+      baixarIcs('roteiro-rota-' + rota.id + '.ics', arquivoIcs(eventos));
+      ra.textContent = eventos.length + (eventos.length === 1 ? ' visita baixada' : ' visitas baixadas');
+      setTimeout(function(){ ra.textContent = 'agenda da rota'; }, 2600);
+      return;
+    }
     var rc = ev.target.closest('[data-rota-copiar]');
     if (rc) {
       ev.stopPropagation();
@@ -1074,6 +1115,156 @@ select,.btn{font:inherit;font-size:14px;background:var(--placa);color:inherit;bo
     }
   });
 
+  // ---- visita: agendamento, anotação e calendário ----
+  // O calendário sai como arquivo .ics (iCalendar). É o único caminho de um site para a agenda
+  // do iPhone, e funciona igual no Android e no computador.
+  var CRLF = String.fromCharCode(13) + String.fromCharCode(10);
+  var BARRA = String.fromCharCode(92);
+
+  function quandoCurto(v){
+    var d = new Date(v);
+    if (!v || isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("pt-BR", { day: "2-digit", month: "2-digit" }) + " " +
+      d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  }
+  function quandoLongo(v){
+    var d = new Date(v);
+    if (!v || isNaN(d.getTime())) return "";
+    return d.toLocaleDateString("pt-BR", { weekday: "long", day: "2-digit", month: "long" }) + ", " +
+      d.toLocaleTimeString("pt-BR", { hour: "2-digit", minute: "2-digit" });
+  }
+
+  function blocoVisita(nome){
+    var v = agenda[nome] || "", nota = notas[nome] || "";
+    return '<div class="visita-bloco">' +
+      '<div class="visita-linha"><div><label for="visita-quando">Dia e hora da visita</label>' +
+      '<input id="visita-quando" type="datetime-local" value="' + esc(v) + '"></div>' +
+      '<button class="btn" type="button" id="visita-agenda">Adicionar ao calendário</button>' +
+      '<button class="btn" type="button" id="visita-google">Google Agenda</button></div>' +
+      '<label for="visita-nota" style="margin-top:10px">Anotações</label>' +
+      '<textarea id="visita-nota" placeholder="O que combinou, com quem falou, o que levar na próxima">' +
+      esc(nota) + '</textarea>' +
+      '<p class="visita-aviso">Fica guardado neste aparelho. <b>Adicionar ao calendário</b> baixa um convite' +
+      ' que o iPhone abre direto na agenda e o Android abre ao tocar no arquivo; <b>Google Agenda</b> abre' +
+      ' o evento já preenchido, sem baixar nada.</p></div>';
+  }
+
+  // ---- montagem do arquivo de calendário ----
+  function escIcs(t){
+    return String(t == null ? "" : t)
+      .split(BARRA).join(BARRA + BARRA)
+      .split(";").join(BARRA + ";")
+      .split(",").join(BARRA + ",")
+      .split(String.fromCharCode(13)).join("")
+      .split(String.fromCharCode(10)).join(BARRA + "n");
+  }
+  // O formato manda quebrar linha acima de 75 OCTETOS, continuando a seguinte com um espaço.
+  // Octeto, não caractere: "Câmara de São João" tem acento, e cada acento ocupa dois bytes —
+  // contando caractere, as linhas saíam longas demais e um leitor rigoroso recusaria o arquivo.
+  var codificador = null;
+  try { codificador = new TextEncoder(); } catch (e) { codificador = null; }
+  function octetos(s){ return codificador ? codificador.encode(s).length : s.length; }
+  function dobra(linha){
+    if (octetos(linha) <= 75) return linha;
+    var letras = Array.from(linha), fora = [], atual = "", limite = 75;
+    for (var i = 0; i < letras.length; i++) {
+      if (octetos(atual + letras[i]) > limite) { fora.push(atual); atual = " "; limite = 75; }
+      atual += letras[i];
+    }
+    if (atual) fora.push(atual);
+    return fora.join(CRLF);
+  }
+  function z2(x){ return (x < 10 ? "0" : "") + x; }
+  // hora de parede, sem fuso: a visita é às 14h no relógio de quem abrir o convite
+  function horaLocal(v, somaHoras){
+    var d = new Date(v);
+    if (isNaN(d.getTime())) return null;
+    d.setHours(d.getHours() + (somaHoras || 0));
+    return d.getFullYear() + z2(d.getMonth() + 1) + z2(d.getDate()) + "T" +
+      z2(d.getHours()) + z2(d.getMinutes()) + "00";
+  }
+  function carimbo(){
+    var d = new Date();
+    return d.getUTCFullYear() + z2(d.getUTCMonth() + 1) + z2(d.getUTCDate()) + "T" +
+      z2(d.getUTCHours()) + z2(d.getUTCMinutes()) + z2(d.getUTCSeconds()) + "Z";
+  }
+  function eventoIcs(nome){
+    var c = cidades[nome], quando = agenda[nome];
+    if (!c || !quando) return null;
+    var ini = horaLocal(quando, 0), fim = horaLocal(quando, 1);
+    if (!ini || !fim) return null;
+    var desc = [];
+    var p = passoDe[nome];
+    if (p) desc.push("Parada " + p.i + " da rota " + p.rota + " — " + p.nomeRota);
+    if (c.tel) desc.push("Câmara: " + c.tel);
+    if (c.pref) desc.push("Prefeito: " + c.pref + (c.prefP ? " (" + c.prefP + ")" : ""));
+    if (c.ver.length) {
+      desc.push(c.ver.length + " gabinete(s) na pauta da mulher:");
+      c.ver.forEach(function(v){ desc.push("- " + v.n + " (" + v.p + ")" + (v.ct ? " — " + v.ct : "")); });
+    } else { desc.push("Nenhum gabinete na pauta foi encontrado nesta câmara."); }
+    if (notas[nome]) { desc.push(""); desc.push("Anotações: " + notas[nome]); }
+    desc.push("");
+    desc.push("Confirme por telefone antes de ir: a reconferência achou erro em cerca de 19% dos contatos de gabinete.");
+    var l = ["BEGIN:VEVENT",
+      "UID:" + id(nome) + "-" + ini + "@roteiro-camaras-sp",
+      "DTSTAMP:" + carimbo(),
+      "DTSTART:" + ini,
+      "DTEND:" + fim,
+      "SUMMARY:" + escIcs("Câmara de " + nome)];
+    if (c.end) l.push("LOCATION:" + escIcs(c.end));
+    if (c.site) l.push("URL:" + escIcs(c.site));
+    l.push("DESCRIPTION:" + escIcs(desc.join(String.fromCharCode(10))));
+    l.push("BEGIN:VALARM", "ACTION:DISPLAY", "TRIGGER:-PT60M",
+      "DESCRIPTION:" + escIcs("Câmara de " + nome + " em 1 hora"), "END:VALARM");
+    l.push("END:VEVENT");
+    return l;
+  }
+  function arquivoIcs(eventos){
+    var l = ["BEGIN:VCALENDAR", "VERSION:2.0",
+      "PRODID:-//Roteiro das Camaras SP//PT-BR", "CALSCALE:GREGORIAN", "METHOD:PUBLISH"];
+    eventos.forEach(function(e){ e.forEach(function(x){ l.push(x); }); });
+    l.push("END:VCALENDAR");
+    return l.map(dobra).join(CRLF) + CRLF;
+  }
+  // No Android o .ics cai na pasta de downloads e exige um toque a mais; este link abre o evento
+  // já preenchido na Google Agenda, que é o calendário padrão da maioria dos aparelhos.
+  function linkGoogle(nome){
+    var c = cidades[nome], quando = agenda[nome];
+    if (!c || !quando) return null;
+    var ini = horaLocal(quando, 0), fim = horaLocal(quando, 1);
+    if (!ini || !fim) return null;
+    var desc = [];
+    var p = passoDe[nome];
+    if (p) desc.push("Parada " + p.i + " da rota " + p.rota + " — " + p.nomeRota);
+    if (c.tel) desc.push("Câmara: " + c.tel);
+    if (c.ver.length) desc.push(c.ver.length + " gabinete(s) na pauta: " +
+      c.ver.map(function(v){ return v.n + " (" + v.p + ")" + (v.ct ? " — " + v.ct : ""); }).join("; "));
+    if (notas[nome]) desc.push("Anotações: " + notas[nome]);
+    desc.push("Confirme por telefone antes de ir.");
+    var q = ["action=TEMPLATE",
+      "text=" + encodeURIComponent("Câmara de " + nome),
+      "dates=" + ini + "/" + fim,
+      "details=" + encodeURIComponent(desc.join(String.fromCharCode(10)))];
+    if (c.end) q.push("location=" + encodeURIComponent(c.end));
+    try {
+      var fuso = Intl.DateTimeFormat().resolvedOptions().timeZone;
+      if (fuso) q.push("ctz=" + encodeURIComponent(fuso));
+    } catch (e) {}
+    return "https://calendar.google.com/calendar/render?" + q.join("&");
+  }
+  function baixarIcs(nomeArq, texto){
+    try {
+      var blob = new Blob([texto], { type: "text/calendar;charset=utf-8" });
+      var url = URL.createObjectURL(blob);
+      var a = document.createElement("a");
+      a.href = url; a.download = nomeArq; a.rel = "noopener";
+      document.body.appendChild(a);
+      a.click();
+      setTimeout(function(){ URL.revokeObjectURL(url); a.remove(); }, 8000);
+      return true;
+    } catch (e) { return false; }
+  }
+
   // ---- ficha em janela ----
   var dlg = document.getElementById('ficha');
   var dlgTitulo = document.getElementById('ficha-titulo');
@@ -1102,7 +1293,7 @@ select,.btn{font:inherit;font-size:14px;background:var(--placa);color:inherit;bo
     pe.push(nf.format(c.pop) + ' habitantes');
     pe.push(c.ver.length ? '<b>' + c.ver.length + (c.ver.length === 1 ? ' gabinete' : ' gabinetes') + ' na pauta</b>' : 'nenhum gabinete na pauta');
     dlgSob.innerHTML = pe.join('<span aria-hidden="true">·</span>');
-    dlgCorpo.innerHTML = fichaHtml(c);
+    dlgCorpo.innerHTML = blocoVisita(nome) + fichaHtml(c);
     dlgCorpo.scrollTop = 0;
     marcaBotaoFeita();
     dlgCopiar.textContent = 'Copiar contatos';
@@ -1119,6 +1310,8 @@ select,.btn{font:inherit;font-size:14px;background:var(--placa);color:inherit;bo
     if (c.end) l.push(c.end);
     if (c.site) l.push(c.site);
     if (c.pref) l.push('Prefeito: ' + c.pref + (c.prefP ? ' (' + c.prefP + ')' : ''));
+    if (agenda[c.n]) l.push('Visita marcada para ' + quandoLongo(agenda[c.n]));
+    if (notas[c.n]) { l.push(''); l.push('Anotações: ' + notas[c.n]); }
     if (c.ver.length) { l.push(''); l.push('Gabinetes na pauta da mulher:'); }
     c.ver.forEach(function(v){
       l.push('- ' + v.n + ' (' + v.p + ')' + (v.ct ? ' — ' + v.ct : '') + (v.m === 'sim' ? ' — mesmo partido do prefeito' : ''));
@@ -1137,6 +1330,43 @@ select,.btn{font:inherit;font-size:14px;background:var(--placa);color:inherit;bo
       salvar();
       marcaBotaoFeita();
       desenhar();
+    });
+    // digitar salva na hora; a lista só é redesenhada ao fechar, para não piscar enquanto escreve
+    var mudouVisita = false;
+    dlgCorpo.addEventListener('input', function(ev){
+      if (!abertaAgora) return;
+      if (ev.target.id === 'visita-nota') {
+        notas[abertaAgora] = ev.target.value.trim();
+        if (!notas[abertaAgora]) delete notas[abertaAgora];
+        salvarNotas(); mudouVisita = true;
+      }
+      if (ev.target.id === 'visita-quando') {
+        agenda[abertaAgora] = ev.target.value;
+        if (!agenda[abertaAgora]) delete agenda[abertaAgora];
+        salvarNotas(); mudouVisita = true;
+      }
+    });
+    dlg.addEventListener('close', function(){
+      if (mudouVisita) { mudouVisita = false; desenhar(); }
+    });
+    dlgCorpo.addEventListener('click', function(ev){
+      var ics = ev.target.closest('#visita-agenda');
+      var goo = ev.target.closest('#visita-google');
+      if (!ics && !goo) return;
+      var campo = document.getElementById('visita-quando');
+      if (!agenda[abertaAgora]) {
+        // sem data não há o que mandar para a agenda: pede a data em vez de gerar evento vazio
+        if (campo) { campo.focus(); campo.style.outline = '2px solid var(--ambar)'; }
+        return;
+      }
+      if (goo) {
+        var u = linkGoogle(abertaAgora);
+        if (u) window.open(u, '_blank', 'noopener');
+        return;
+      }
+      var ev2 = eventoIcs(abertaAgora);
+      if (!ev2) return;
+      baixarIcs('visita-' + id(abertaAgora).replace('c-', '') + '.ics', arquivoIcs([ev2]));
     });
     dlgCopiar.addEventListener('click', function(){
       var c = cidades[abertaAgora];
