@@ -1120,6 +1120,8 @@ select,.btn{font:inherit;font-size:14px;background:var(--placa);color:inherit;bo
   // do iPhone, e funciona igual no Android e no computador.
   var CRLF = String.fromCharCode(13) + String.fromCharCode(10);
   var BARRA = String.fromCharCode(92);
+  // o visualizador de artifact do Claude se identifica por este objeto; lá não há download
+  var noVisualizador = !!(window.claude && typeof window.claude.use === 'function');
 
   function quandoCurto(v){
     var d = new Date(v);
@@ -1362,6 +1364,20 @@ select,.btn{font:inherit;font-size:14px;background:var(--placa);color:inherit;bo
       if (goo) {
         var u = linkGoogle(abertaAgora);
         if (u) window.open(u, '_blank', 'noopener');
+        return;
+      }
+      // Dentro do visualizador de artifact do Claude a página não recebe permissão de baixar
+      // arquivo, e .ics não está na lista de formatos que ele sabe entregar. Em vez de um botão
+      // que não faz nada, diz onde funciona.
+      if (noVisualizador) {
+        var aviso = document.querySelector('.visita-aviso');
+        if (aviso) {
+          aviso.innerHTML = '<b>Aqui dentro o arquivo não baixa</b> — o visualizador do Claude não ' +
+            'entrega arquivos para a página. Abra o roteiro publicado em ' +
+            '<a href="https://lugheri.github.io/roteiro-camaras-sp/" target="_blank" rel="noopener">' +
+            'lugheri.github.io/roteiro-camaras-sp</a> e este botão funciona. O <b>Google Agenda</b> ' +
+            'ao lado não depende de baixar nada.';
+        }
         return;
       }
       var ev2 = eventoIcs(abertaAgora);
