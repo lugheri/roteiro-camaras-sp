@@ -1,5 +1,6 @@
 {
   "name": "Roteiro das Câmaras SP",
+  "id": "/roteiro-camaras-sp/",
   "short_name": "Roteiro SP",
   "description": "As 199 cidades de São Paulo acima de 30 mil habitantes em 15 viagens, com o trajeto rodoviário, a ficha de cada câmara e os gabinetes ligados à pauta da mulher.",
   "lang": "pt-BR",
@@ -7,14 +8,36 @@
   "start_url": "./",
   "scope": "./",
   "display": "standalone",
-  "display_override": ["standalone", "minimal-ui"],
+  "display_override": [
+    "standalone",
+    "minimal-ui"
+  ],
   "orientation": "any",
   "background_color": "#F1F1ED",
   "theme_color": "#0A6246",
-  "categories": ["travel", "productivity", "navigation"],
+  "categories": [
+    "travel",
+    "productivity",
+    "navigation"
+  ],
   "icons": [
-    { "src": "icone-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
-    { "src": "icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
-    { "src": "icone-maskable.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+    {
+      "src": "icone-192.png",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icone-512.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "icone-maskable.png",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "maskable"
+    }
   ]
 }

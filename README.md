@@ -15,6 +15,14 @@ branch › main / (root)*.
 Funciona tanto na raiz de um domínio quanto num subcaminho (`/usuario.github.io/repositorio/`):
 todos os caminhos são relativos e o service worker se registra no escopo da pasta.
 
+## Um cuidado ao mudar de endereço
+
+O `id` do manifesto é `/roteiro-camaras-sp/` e é resolvido contra a **origem**, não contra a
+pasta. É ele que diz ao sistema que o app instalado continua sendo o mesmo. Conferido pedindo
+o cálculo ao próprio Chrome: `"./"` daria a raiz do domínio e `"roteiro-camaras-sp"` ficaria
+sem a barra final — as duas formas mudariam a identidade e deixariam órfão quem já instalou.
+Se um dia o site mudar de pasta, **mantenha este mesmo `id`**.
+
 ## O que confiar e o que não
 
 - **População**: estimativa do IBGE para 1º/7/2025, conferida número a número — zero divergência.
