@@ -347,6 +347,20 @@ select,.btn{font:inherit;font-size:14px;background:var(--placa);color:inherit;bo
     guardado = ev;
     if (botao && !jaInstalado) botao.hidden = false;
   });
+  // O iOS não tem evento de instalação: no Safari só se instala por Compartilhar › Adicionar à
+  // Tela de Início, e nenhum site consegue disparar isso. Então o botão nunca apareceria no
+  // iPhone — no lugar dele vai a instrução, que é o que de fato resolve lá.
+  var ehIos = /iPad|iPhone|iPod/.test(navigator.userAgent) ||
+    (navigator.platform === 'MacIntel' && navigator.maxTouchPoints > 1);
+  if (ehIos && !jaInstalado && nota) {
+    nota.innerHTML = '<b>Para instalar no iPhone</b> e abrir sem internet: toque em ' +
+      '<svg viewBox="0 0 24 24" width="14" height="14" aria-label="compartilhar" ' +
+      'style="vertical-align:-2px" fill="none" stroke="currentColor" stroke-width="1.9" ' +
+      'stroke-linecap="round" stroke-linejoin="round"><path d="M12 3v12"/>' +
+      '<path d="M8 7l4-4 4 4"/><path d="M5 12v8h14v-8"/></svg>' +
+      ' (Compartilhar) e escolha <b>Adicionar à Tela de Início</b>.';
+    nota.hidden = false;
+  }
   if (botao) botao.addEventListener('click', function(){
     if (!guardado) return;
     guardado.prompt();

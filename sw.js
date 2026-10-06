@@ -6,7 +6,7 @@
 //   página chega assim que houver sinal, em vez de o app ficar preso numa cópia velha para sempre.
 // - resto (ícone, manifesto, fonte): CACHE PRIMEIRO. Não muda e não precisa de viagem à rede.
 // Trocar o número de CACHE abaixo invalida tudo e força o app a baixar de novo.
-const CACHE = 'roteiro-camaras-v3';
+const CACHE = 'roteiro-camaras-v4';
 const INICIO = new URL('./', self.registration.scope).href;
 const ESSENCIAIS = [INICIO, './manifest.webmanifest', './icone-192.png', './icone-512.png'];
 
